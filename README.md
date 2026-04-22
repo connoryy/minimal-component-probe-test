@@ -44,12 +44,12 @@ overhead, channel operations, scheduling. Normal and expected (typically
 
 ## Files
 
-Everything lives in two files:
-
 | File | What |
 |------|------|
 | `Dockerfile` | Multi-stage build: compiles Vector with `component-probes`, installs bpftrace |
-| `run-demo.sh` | Inline Vector config + bpftrace script, orchestrates both processes |
+| `vector.yaml` | Pipeline config — swap for your own |
+| `probe.bt` | bpftrace script — works with any Vector config, no changes needed |
+| `run.sh` | Starts bpftrace then Vector, tails output |
 
 ## Docker Flags
 

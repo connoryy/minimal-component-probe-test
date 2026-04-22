@@ -1,12 +1,24 @@
+// Vector exposes two functions as uprobe attachment points:
+//   vector_register_component(id, name_ptr, name_len) — called once per component at startup
+//   vector_register_thread(tid, label_ptr)             — called once per thread at startup
+//
+// Each thread has a u32 that holds the ID of whichever component it's currently
+// executing. The profiler reads this u32 at ~997Hz to attribute CPU samples.
+
+// Build component ID -> name mapping
 uprobe:/usr/local/bin/vector:vector_register_component {
     @names[arg0] = str(arg1, arg2);
     printf("[component] id=%u name=%s\n", arg0, str(arg1, arg2));
 }
+
+// Build thread TID -> label address mapping
 uprobe:/usr/local/bin/vector:vector_register_thread {
     @tid_to_addr[arg0] = arg1;
     @vector_pid = pid;
     printf("[thread]    tid=%lu addr=0x%lx\n", arg0, arg1);
 }
+
+// Sample CPU at ~997Hz — read each Vector thread's current component label
 profile:hz:997 {
     if (@vector_pid != 0 && pid == @vector_pid) {
         $addr = @tid_to_addr[tid];
@@ -17,4 +29,6 @@ profile:hz:997 {
         }
     }
 }
+
+// Print per-component CPU counts every 5 seconds
 interval:s:5 { print(@cpu); clear(@cpu); }
