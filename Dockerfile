@@ -21,7 +21,6 @@ RUN echo "$CACHEBUST" && git clone --depth 1 --branch component-probes \
 
 WORKDIR /vector
 ENV CARGO_PROFILE_RELEASE_DEBUG=line-tables-only
-ENV RUSTFLAGS="-C force-frame-pointers=yes"
 RUN cargo build --release --no-default-features \
     --features "sources-demo_logs,sinks-blackhole,transforms-remap,component-probes"
 
