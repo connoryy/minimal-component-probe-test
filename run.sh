@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BT_OUT=/tmp/bt.out
-BPFTRACE_MAP_KEYS_MAX=65536 bpftrace /opt/probe.bt > "$BT_OUT" 2>&1 &
+bpftrace /opt/probe.bt > "$BT_OUT" 2>&1 &
 BT=$!
 while ! grep -q Attaching "$BT_OUT" 2>/dev/null; do sleep 0.1; done
 
