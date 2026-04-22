@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY corp-ca-bundle.pe[m] /usr/local/share/ca-certificates/corp.crt
 RUN update-ca-certificates 2>/dev/null || true
 
+# Clone from the fork where the component-probes branch lives.
+# Once the PR (vectordotdev/vector#24860) is merged, change to:
+#   https://github.com/vectordotdev/vector.git
 ARG CACHEBUST=0
 RUN echo "$CACHEBUST" && git clone --depth 1 --branch component-probes \
     https://github.com/connoryy/vector.git /vector
