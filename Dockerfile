@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+#
+# docker build -t vector-probes .
+# docker run --rm -it --privileged --pid=host vector-probes
+#
+FROM rust:1.92-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates cmake protobuf-compiler libprotobuf-dev g++ libssl-dev pkg-config git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY corp-ca-bundle.pe[m] /usr/local/share/ca-certificates/corp.crt
+RUN update-ca-certificates 2>/dev/null || true
+
+ARG CACHEBUST=0
+RUN echo "$CACHEBUST" && git clone --depth 1 --branch component-probes \
+    https://github.com/connoryy/vector.git /vector
+
+WORKDIR /vector
+ENV CARGO_PROFILE_RELEASE_DEBUG=line-tables-only
+ENV RUSTFLAGS="-C force-frame-pointers=yes"
+RUN cargo build --release --no-default-features \
+    --features "sources-demo_logs,sinks-blackhole,transforms-remap,component-probes"
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bpftrace ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /vector/target/release/vector /usr/local/bin/vector
+RUN mkdir -p /etc/vector
+COPY vector.yaml /etc/vector/vector.yaml
+COPY probe.bt /opt/probe.bt
+COPY run.sh /opt/run.sh
+RUN chmod +x /opt/run.sh
+
+ENTRYPOINT ["/opt/run.sh"]

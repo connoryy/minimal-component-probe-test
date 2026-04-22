@@ -1,0 +1,20 @@
+uprobe:/usr/local/bin/vector:vector_register_component {
+    @names[arg0] = str(arg1, arg2);
+    printf("[component] id=%u name=%s\n", arg0, str(arg1, arg2));
+}
+uprobe:/usr/local/bin/vector:vector_register_thread {
+    @tid_to_addr[arg0] = arg1;
+    @vector_pid = pid;
+    printf("[thread]    tid=%lu addr=0x%lx\n", arg0, arg1);
+}
+profile:hz:997 {
+    if (@vector_pid != 0 && pid == @vector_pid) {
+        $addr = @tid_to_addr[tid];
+        if ($addr != 0) {
+            $gid = *(uint32 *)$addr;
+            if ($gid != 0) { @cpu[@names[$gid]] = count(); }
+            else           { @cpu["(idle)"] = count(); }
+        }
+    }
+}
+interval:s:5 { print(@cpu); clear(@cpu); }

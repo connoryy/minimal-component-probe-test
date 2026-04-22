@@ -1,0 +1,12 @@
+sources:
+  gen: { type: demo_logs, format: syslog, interval: 0.0, count: 999999999 }
+transforms:
+  crunch:
+    type: remap
+    inputs: [gen]
+    source: |
+      .h1 = sha2!(string!(.message), variant: "SHA-256")
+      .h2 = sha2!(.h1, variant: "SHA-256")
+      .h3 = sha2!(.h2, variant: "SHA-256")
+sinks:
+  devnull: { type: blackhole, inputs: [crunch], print_interval_secs: 5 }
