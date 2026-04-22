@@ -27,7 +27,7 @@ RUN cargo build --release --no-default-features \
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    bpftrace ca-certificates && rm -rf /var/lib/apt/lists/*
+    bpftrace && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /vector/target/release/vector /usr/local/bin/vector
 RUN mkdir -p /etc/vector
 COPY vector.yaml /etc/vector/vector.yaml

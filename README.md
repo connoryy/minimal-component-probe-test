@@ -74,9 +74,8 @@ In `probe.bt`, change `interval:s:5` to your preferred interval.
 
 ## Requirements
 
-- Docker (with BuildKit)
-- A Linux host with kernel 4.9+ (for bpftrace/eBPF support)
-- The container must run with `--privileged --pid=host`
+- Docker
+- `--privileged --pid=host` on `docker run`
 
 ## FAQ
 
