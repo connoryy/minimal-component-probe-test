@@ -13,6 +13,26 @@ Vector's `component-probes` feature exposes lightweight probe points that let ex
 
 ## Quick start
 
+### Native build (recommended for development)
+
+Build Vector with the `component-probes` feature:
+
+```bash
+cargo build --release --features component-probes
+```
+
+Then run Vector, attach bpftrace, and observe per-component CPU:
+
+```bash
+# Terminal 1: start bpftrace (must start before Vector)
+sudo bpftrace probe.bt
+
+# Terminal 2: start Vector
+./target/release/vector --config vector.yaml
+```
+
+### Docker (self-contained demo)
+
 ```bash
 docker build -t vector-probes .
 docker run --rm -it --privileged --pid=host vector-probes

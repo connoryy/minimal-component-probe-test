@@ -5,8 +5,8 @@ transforms:
     type: remap
     inputs: [gen]
     source: |
-      .h1 = sha2!(string!(.message), variant: "SHA-256")
-      .h2 = sha2!(.h1, variant: "SHA-256")
-      .h3 = sha2!(.h2, variant: "SHA-256")
+      .parsed = parse_syslog!(string!(.message))
+      .upper = upcase(string!(.message))
+      .lower = downcase(.upper)
 sinks:
   devnull: { type: blackhole, inputs: [crunch], print_interval_secs: 5 }

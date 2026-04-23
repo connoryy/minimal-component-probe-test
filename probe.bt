@@ -1,32 +1,42 @@
-// Vector exposes two functions as uprobe attachment points:
-//   vector_register_component(id, name_ptr, name_len) — called once per component at startup
-//   vector_register_thread(tid, label_ptr)             — called once per thread at startup
+// Vector component-probes: per-component CPU profiler
 //
-// Each thread has a u32 that holds the ID of whichever component it's currently
-// executing. The profiler reads this u32 at ~997Hz to attribute CPU samples.
+// Hooks into Vector's uprobe attachment points to attribute CPU samples
+// to individual pipeline components. Works on all architectures (x86_64,
+// arm64) and all bpftrace versions.
+//
+// How it works:
+//   1. vector_register_component fires once per component at startup,
+//      giving us a mapping from component-id -> name.
+//   2. vector_component_enter/exit fire on every component span transition,
+//      letting us track which component each thread is currently executing.
+//   3. A 997 Hz profiling timer reads the BPF map to attribute CPU samples.
+//
+// Binary path:
+//   Docker demo:  /usr/local/bin/vector
+//   Native build: target/release/vector (update paths below)
 
 // Build component ID -> name mapping
 uprobe:/usr/local/bin/vector:vector_register_component {
-    @names[arg0] = str(arg1, arg2);
-    printf("[component] id=%u name=%s\n", arg0, str(arg1, arg2));
-}
-
-// Build thread TID -> label address mapping
-uprobe:/usr/local/bin/vector:vector_register_thread {
-    @tid_to_addr[arg0] = arg1;
+    @names[arg0] = str(arg1);
     @vector_pid = pid;
-    printf("[thread]    tid=%lu addr=0x%lx\n", arg0, arg1);
+    printf("[component] id=%u name=%s\n", arg0, str(arg1));
 }
 
-// Sample CPU at ~997Hz — read each Vector thread's current component label
+// Track active component per thread (maintained in BPF map — no user-space reads)
+uprobe:/usr/local/bin/vector:vector_component_enter {
+    @active[tid] = arg0;
+}
+
+uprobe:/usr/local/bin/vector:vector_component_exit {
+    @active[tid] = 0;
+}
+
+// Sample CPU at ~997Hz — read each Vector thread's current component from BPF map
 profile:hz:997 {
     if (@vector_pid != 0 && pid == @vector_pid) {
-        $addr = @tid_to_addr[tid];
-        if ($addr != 0) {
-            $gid = *(uint32 *)$addr;
-            if ($gid != 0) { @cpu[@names[$gid]] = count(); }
-            else           { @cpu["(idle)"] = count(); }
-        }
+        $gid = @active[tid];
+        if ($gid != 0) { @cpu[@names[$gid]] = count(); }
+        else           { @cpu["(idle)"] = count(); }
     }
 }
 
